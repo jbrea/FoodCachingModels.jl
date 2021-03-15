@@ -1,0 +1,13 @@
+name = "FoodCachingModels"
+uuid = "1c4db5f1-e6ab-45d4-a5c5-b1bf60220e94"
+authors = ["Johanni Brea"]
+version = "0.1.0"
+
+[compat]
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
