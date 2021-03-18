@@ -3,6 +3,16 @@ uuid = "1c4db5f1-e6ab-45d4-a5c5-b1bf60220e94"
 authors = ["Johanni Brea"]
 version = "0.1.0"
 
+[deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+CodecZstd = "6b39b394-51ab-5f42-8807-6242bab2b4c2"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+FoodCachingExperiments = "c83de4e0-732e-420a-99d5-72756bd45ef8"
+NestedStructInitialiser = "82eb44c5-af0e-4169-934d-9c2441e452c9"
+RuntimeGeneratedFunctions = "7e49a35a-f44a-4d26-94aa-eba1b4ca6b47"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
 [compat]
 julia = "1.5"
 
