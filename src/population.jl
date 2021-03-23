@@ -153,7 +153,11 @@ mutable struct Population{T}
     p::NestedStructInitialiser.Parameters
     constructor
 end
-reinit!(m::Population) = m.constructor = initialiser(m.p)
+function init(p)
+    @distributed vcat for _ in procs()
+        [initialiser(p)]
+    end
+end
 function setparameters!(m::Population{<:AbstractVector}, x)
     n = div(length(x), 2)
     m.m .= @view x[1:n]
@@ -168,31 +172,23 @@ function Population(; integrationmode = :eventbased, kwargs...)
     p = parameters(Model{integrationmode};
                    defaults(; kwargs...)...)
     l, u = bounds(p)
-    c = initialiser(p)
+    c = init(p)
     Population(fill(.5, length(l)), fill(-4., length(l)), l, u, p, c)
 end
 softplus(x) = log(exp(x) + 1) + eps()
 function Base.rand(m::Population{<:AbstractVector})
-    m.constructor(@. (m.u - m.l) * rand(TruncatedNormal(m.m, softplus(m.s), 0, 1)) + m.l)
+    m.constructor[myid()](@. (m.u - m.l) * rand(TruncatedNormal(m.m, softplus(m.s), 0, 1)) + m.l)
 end
 Base.rand(m::Population{<:Nothing}) = m.constructor(m.m)
 Base.rand(m::Population, n::Int) = [rand(m) for _ in 1:n]
 
-function save(path, m::Population)
-    open(path, "w") do f
-        stream = ZstdCompressorStream(f)
-        bson(stream, Dict(:model => m))
-        close(stream)
-    end
+function save(path, m::Population, dict = Dict{Symbol, Any}())
+    dict[:model] = m
+    bsave(path, dict)
 end
 function load(path)
-    m = open(path) do f
-        stream = ZstdDecompressorStream(f)
-        d = BSON.load(stream, @__MODULE__)
-        close(stream)
-        d[:model]
-    end
-    Population(m.m, m.s, m.l, m.u, m.p, initialiser(m.p))
+    m = bload(path, @__MODULE__)[:model]
+    Population(m.m, m.s, m.l, m.u, m.p, init(m.p))
 end
 
 Baseline(; kwargs...) = Population(; agent = SimpleAgent, kwargs...)

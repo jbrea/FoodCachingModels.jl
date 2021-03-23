@@ -1,12 +1,12 @@
 module FoodCachingModels
 
 using FoodCachingExperiments, NestedStructInitialiser, Distributions, Unitful,
-      DataFrames, BSON, CodecZstd, RuntimeGeneratedFunctions
+      DataFrames, RuntimeGeneratedFunctions, Distributed
 
 import FoodCachingExperiments: add!, remove!, wait!, countfooditems
 import FoodCachingExperiments: Tray, Food, FoodItem, InspectionObserver,
                                MaintenanceDiet, observe!, N_FOODTYPE, Stone,
-                               foodindex
+                               foodindex, bload, bsave
 
 export Baseline, MotivationalControl, EpisodicLikeMemory, PlasticCaching, ReplayAndPlan,
        save, load
