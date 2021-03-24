@@ -176,8 +176,10 @@ function Population(; integrationmode = :eventbased, kwargs...)
     Population(fill(.5, length(l)), fill(-4., length(l)), l, u, p, c)
 end
 softplus(x) = log(exp(x) + 1) + eps()
+beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
+                     Beta(softplus(s - d), softplus(s))
 function Base.rand(m::Population{<:AbstractVector})
-    m.constructor[myid()](@. (m.u - m.l) * rand(TruncatedNormal(m.m, softplus(m.s), 0, 1)) + m.l)
+    m.constructor[myid()](@. (m.u - m.l) * rand(rand(beta(m.m, m.s))) + m.l)
 end
 Base.rand(m::Population{<:Nothing}) = m.constructor(m.m)
 Base.rand(m::Population, n::Int) = [rand(m) for _ in 1:n]
