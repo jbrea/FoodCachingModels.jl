@@ -62,7 +62,7 @@ end
 function getquery(p)
     l = length(p.memory)
     s = max(1, l - 1)
-    query = Vector{Base.KeySet{Int64,Dict{Int64,PlanningJays.MemoryContent}}}(undef, l - s + 2)
+    query = Vector{Base.KeySet{Int64,Dict{Int64,MemoryContent}}}(undef, l - s + 2)
     j = 1
     for i in max(1, length(p.memory) - 1):length(p.memory)
         query[j] = keys(p.memory[i])
