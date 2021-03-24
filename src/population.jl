@@ -179,7 +179,7 @@ softplus(x) = log(exp(x) + 1) + eps()
 beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
                      Beta(softplus(s - d), softplus(s))
 function Base.rand(m::Population{<:AbstractVector})
-    m.constructor[myid()](@. (m.u - m.l) * rand(rand(beta(m.m, m.s))) + m.l)
+    m.constructor[myid()](@. (m.u - m.l) * rand(beta(m.m, m.s)) + m.l)
 end
 Base.rand(m::Population{<:Nothing}) = m.constructor(m.m)
 Base.rand(m::Population, n::Int) = [rand(m) for _ in 1:n]
