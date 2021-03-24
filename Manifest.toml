@@ -28,9 +28,9 @@ version = "0.9.3"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "de4f08843c332d355852721adb1592bce7924da3"
+git-tree-sha1 = "a8a75576d509f1996fe3046ce62e5685b0a8bd3a"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "0.9.29"
+version = "0.9.31"
 
 [[CodecZstd]]
 deps = ["TranscodingStreams", "Zstd_jll"]
@@ -125,7 +125,7 @@ version = "0.11.7"
 
 [[FoodCachingExperiments]]
 deps = ["BSON", "CSV", "CodecZstd", "DataFrames", "DataFramesMeta", "Distributions", "HypothesisTests", "LinearAlgebra", "Random", "StatsBase", "StatsModels", "TOML", "Unitful"]
-git-tree-sha1 = "6f68defeb427a42943c7010f8e86da06e116d079"
+git-tree-sha1 = "f119c905eab04c958b7220ab8f4f49fe4b16ad9a"
 repo-rev = "master"
 repo-url = "../FoodCachingExperiments"
 uuid = "c83de4e0-732e-420a-99d5-72756bd45ef8"
@@ -203,7 +203,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 [[NestedStructInitialiser]]
 deps = ["Requires", "RuntimeGeneratedFunctions"]
 git-tree-sha1 = "96c3c13318c26a86f7af3e5054eee76e65644c20"
-repo-rev = "88066d2"
+repo-rev = "main"
 repo-url = "https://github.com/jbrea/NestedStructInitialiser.jl"
 uuid = "82eb44c5-af0e-4169-934d-9c2441e452c9"
 version = "0.1.0"
@@ -227,9 +227,9 @@ version = "0.11.0"
 
 [[Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "223a825cccef2228f3fdbf2ecc7ca93363059073"
+git-tree-sha1 = "c8abc88faa3f7a3950832ac5d6e690881590d6dc"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "1.0.16"
+version = "1.1.0"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
@@ -365,9 +365,9 @@ version = "0.6.21"
 
 [[StructTypes]]
 deps = ["Dates", "UUIDs"]
-git-tree-sha1 = "d7f4287dbc1e590265f50ceda1b40ed2bb31bbbb"
+git-tree-sha1 = "89b390141d2fb2ef3ac2dc32e336f7a5c4810751"
 uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
-version = "1.4.0"
+version = "1.5.0"
 
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -387,9 +387,9 @@ version = "1.0.0"
 
 [[Tables]]
 deps = ["DataAPI", "DataValueInterfaces", "IteratorInterfaceExtensions", "LinearAlgebra", "TableTraits", "Test"]
-git-tree-sha1 = "f03fc113290ee7726b173fc7ea661260d204b3f2"
+git-tree-sha1 = "a9ff3dfec713c6677af435d6a6d65f9744feef67"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "1.4.0"
+version = "1.4.1"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
