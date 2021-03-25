@@ -145,12 +145,13 @@ function bounds(p::NestedStructInitialiser.Parameters; kwargs...)
     l, u
 end
 
-mutable struct Population{T}
+mutable struct Population{T,D}
     m::Vector{Float64}
     s::T
     l::Vector{Float64}
     u::Vector{Float64}
     p::NestedStructInitialiser.Parameters
+    dist::D
     constructor
 end
 function init(p)
@@ -168,18 +169,22 @@ function setparameters!(m::Population{<:Nothing}, x)
     m.m .= x
     m
 end
-function Population(; integrationmode = :eventbased, kwargs...)
+function Population(; integrationmode = :eventbased,
+                      distribution = truncnorm, kwargs...)
     p = parameters(Model{integrationmode};
                    defaults(; kwargs...)...)
     l, u = bounds(p)
     c = init(p)
-    Population(fill(.5, length(l)), fill(-4., length(l)), l, u, p, c)
+    Population(default_values(distribution, length(l))..., l, u, p, distribution, c)
 end
 softplus(x) = log(exp(x) + 1) + eps()
 beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
                      Beta(softplus(s - d), softplus(s))
+truncnorm(m, s) = TruncatedNormal(m, softplus(s), 0, 1)
+default_values(::typeof(beta), l) = (m = fill(0., l), s = fill(100., l))
+default_values(::typeof(truncnorm), l) = (m = fill(.5, l), s = fill(-4., l))
 function Base.rand(m::Population{<:AbstractVector})
-    m.constructor[myid()](@. (m.u - m.l) * rand(beta(m.m, m.s)) + m.l)
+    m.constructor[myid()](@. (m.u - m.l) * rand(m.dist(m.m, m.s)) + m.l)
 end
 Base.rand(m::Population{<:Nothing}) = m.constructor(m.m)
 Base.rand(m::Population, n::Int) = [rand(m) for _ in 1:n]
@@ -190,7 +195,7 @@ function save(path, m::Population, dict = Dict{Symbol, Any}())
 end
 function load(path)
     m = bload(path, @__MODULE__)[:model]
-    Population(m.m, m.s, m.l, m.u, m.p, init(m.p))
+    Population(m.m, m.s, m.l, m.u, m.p, m.dist, init(m.p))
 end
 
 Baseline(; kwargs...) = Population(; agent = SimpleAgent, kwargs...)
