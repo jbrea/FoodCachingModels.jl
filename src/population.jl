@@ -22,8 +22,11 @@ function defaults(::Type{SpecSatAgent}; kwargs...)
     merge((hungermodel = Hunger, specsatparams = SpecSatOrthoParams),
           kwargs)
 end
+default_foodtypes(::Any) = collect(instances(Food))
+default_foodtypes(es::Vector{Symbol}) = union(vcat(FoodCachingExperiments.foodtypes.(es)...))
 function defaults(::Type{SpecSatOrthoParams};
-                  foodtypes = collect(instances(Food)),
+                  experiments = nothing,
+                  foodtypes = default_foodtypes(experiments),
                   kwargs...)
     n = length(foodtypes)
     n1 = n - (Stone in foodtypes)
@@ -34,7 +37,8 @@ function defaults(::Type{SpecSatOrthoParams};
 end
 function defaults(::Type{Hunger};
                   timeunit = 1.0u"minute",
-                  foodtypes = collect(instances(Food)),
+                  experiments = nothing,
+                  foodtypes = default_foodtypes(experiments),
                   kwargs...)
     n = length(foodtypes)
     merge(merge((hunger = Init(zeros(n)),
