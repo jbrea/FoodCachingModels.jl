@@ -99,10 +99,10 @@ end
 const BOUNDS = Dict{Symbol, Tuple{Float64, Float64}}()
 # SimpleAgent
 BOUNDS[:otheractionweight] = (0., 1.)
-BOUNDS[:timeout_eat] = (10., 100.)
-BOUNDS[:timeout_cache] = (10., 100.)
-BOUNDS[:timeout_inspect] = (10., 100.)
-BOUNDS[:timeout_other] = (10., 100.)
+BOUNDS[:timeout_eat] = (10., 200.)
+BOUNDS[:timeout_cache] = (10., 200.)
+BOUNDS[:timeout_inspect] = (10., 200.)
+BOUNDS[:timeout_other] = (10., 200.)
 BOUNDS[:eatpreference] = (0., 4.)
 BOUNDS[:cachepreference] = (0., 4.)
 BOUNDS[:inspectpreference] = (0., 4.)
@@ -157,6 +157,9 @@ mutable struct Population{T,D}
     p::NestedStructInitialiser.Parameters
     dist::D
     constructor
+end
+function Base.show(io::IO, ::MIME"text/plain", pop::Population)
+    println(io, "Population of $(pop.p.fixed[1][2]) ($(pop.dist))")
 end
 function init(p)
     @distributed vcat for _ in procs()
