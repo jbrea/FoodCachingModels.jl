@@ -98,7 +98,7 @@ end
 
 const BOUNDS = Dict{Symbol, Tuple{Float64, Float64}}()
 # SimpleAgent
-BOUNDS[:otheractionweight] = (0., 1.)
+BOUNDS[:otheractionweight] = (eps(), 1.)
 BOUNDS[:timeout_eat] = (10., 200.)
 BOUNDS[:timeout_cache] = (10., 200.)
 BOUNDS[:timeout_inspect] = (10., 200.)
