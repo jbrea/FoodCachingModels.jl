@@ -162,7 +162,7 @@ function _act!(m::Model, eatpossible, inspectpossible, cachepossible,
     wmax = otherpossible ? m.agent.params.otheractionweight : eps()
 #     @show c1 c2 c3 leat linspect lcache eatpossible inspectpossible cachepossible
     t = 5 * (leat + linspect + lcache)
-    lookup = IdDict{Tuple{Symbol,Int,Int}, Float64}()
+    lookup = Dict{Tuple{Symbol,Int,Int}, Float64}()
     transfer = squash(m.agent)
     while true
         t -= 1
