@@ -66,11 +66,11 @@ end
 removefromobjlists!(m::Model, obj::FoodItem) = removefromobjlists!(m.cage, obj)
 function removefromobjlists!(container::T, obj::FoodItem) where T
     if obj.n == 1
-        if obj.eatable || T <: Tray
-            removefromlist!(container.eatableitems, obj)
-        end
         if T <: Cage && obj.cacheable
             removefromlist!(container.cacheableitems, obj)
+        end
+        if obj.eatable || T <: Tray
+            removefromlist!(container.eatableitems, obj)
         end
     else
         obj.n -= 1
@@ -249,7 +249,7 @@ end
 function integrate!(m::Model{:euler}, t)
     s = m.cage.t
     while true
-        s += 30u"s"
+        s += 60u"s"
         t < s && return _integrate!(m, t)
         _integrate!(m, s)
     end
