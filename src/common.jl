@@ -137,91 +137,77 @@ function decide!(m::Model)
     _act!(m, eatpossible, inspectpossible, cachepossible,
           m.cage, m.cage.cacheableitems, opentrays)
 end
-function updatecut(cut, wmax, w, t)
-    if w > wmax
-        wmax = w
+squash(x) = min(1., max(eps(), x))
+function _doit!(a, m, w, object, cacheableitems, opentrays, i_item, i_tray)
+    if a == :eat
+        trackeat!(m.tracker, w, object.eatableitems[i_item], m.cage.t)
+        eatfrom!(m.agent, object, i_item, m.cage.trays)
+        timeout_eat(m.agent)
+    elseif a == :inspect
+        trackinspect!(m.tracker, w, opentrays[i_tray], m.cage.t)
+        _inspect!(m, opentrays[i_tray], opentrays)
+        timeout_inspect(m.agent)
+    elseif a == :cache
+        trackcache!(m.tracker, w, cacheableitems[i_item], opentrays[i_tray], m.cage.t)
+        cachefromto!(m.agent, object, i_item, opentrays, i_tray)
+        timeout_cache(m.agent)
+    else
+        trackotheraction!(m.tracker, w, m.cage.t)
+        timeout_other(m.agent)
     end
-    t > 0 ? cut : wmax, wmax
 end
-function squash(agent)
-#     c = exp(agent.params.u)
-    w -> begin
-        w = min(1., max(eps(), w))
-#         c*w/(1 + w*(c - 1))
-    end
+function _getw(a, m, object, cacheableitems, opentrays, i_item, i_tray)
+    a == :eat && return eatfromweight(m.agent, object.eatableitems[i_item])
+    a == :inspect && return inspectweight(m.agent, opentrays[i_tray])
+    cachefromtoweight(m.agent, cacheableitems[i_item], opentrays[i_tray])
 end
-function _act!(m::Model, eatpossible, inspectpossible, cachepossible,
+@inbounds function _act!(m::Model, eatpossible, inspectpossible, cachepossible,
                object, cacheableitems, opentrays; otherpossible = true)
-    lcache = cachepossible * length(cacheableitems)
-    leat = eatpossible * length(object.eatableitems)
-    linspect = inspectpossible * length(opentrays)
-    c3 = lcache/(lcache + otherpossible)
-    c2 = linspect/(linspect + lcache + otherpossible)
-    c1 = leat/(leat + linspect + lcache + otherpossible)
-    cut = 1. # max(5, m.agent.params.otheractionweight)
-    wmax = otherpossible ? m.agent.params.otheractionweight : eps()
-#     @show c1 c2 c3 leat linspect lcache eatpossible inspectpossible cachepossible
-    t = 5 * (leat + linspect + lcache)
-    lookup = Dict{Tuple{Symbol,Int,Int}, Float64}()
-    transfer = squash(m.agent)
-    while true
-        t -= 1
-        if eatpossible && rand() < c1
-            i = rand(1:length(object.eatableitems))
-            key = (:eat, i, 0)
-            if haskey(lookup, key)
-                w = lookup[key]
-            else
-                w = eatfromweight(m.agent, object.eatableitems[i]) |> transfer
-                lookup[key] = w
-            end
-            cut, wmax = updatecut(cut, wmax, w, t)
-            if w > cut * rand()
-                trackeat!(m.tracker, w, object.eatableitems[i], m.cage.t)
-                eatfrom!(m.agent, object, i, m.cage.trays)
-                return timeout_eat(m.agent)
-            end
-        elseif inspectpossible && rand() < c2
-            i = rand(1:length(opentrays))
-            key = (:inspect, i, 0)
-            if haskey(lookup, key)
-                w = lookup[key]
-            else
-                w = inspectweight(m.agent, opentrays[i]) |> transfer
-                lookup[key] = w
-            end
-            cut, wmax = updatecut(cut, wmax, w, t)
-            if w > cut * rand()
-                trackinspect!(m.tracker, w, opentrays[i], m.cage.t)
-                _inspect!(m, opentrays[i], opentrays)
-                return timeout_inspect(m.agent)
-            end
-        elseif cachepossible && rand() < c3
-            i_item = rand(1:length(cacheableitems))
-            i_tray = rand(1:length(opentrays))
-            key = (:cache, i_item, i_tray)
-            if haskey(lookup, key)
-                w = lookup[key]
-            else
-                w = cachefromtoweight(m.agent, cacheableitems[i_item], opentrays[i_tray]) |> transfer
-                lookup[key] = w
-            end
-            cut, wmax = updatecut(cut, wmax, w, t)
-            if w > cut * rand()
-                trackcache!(m.tracker, w, cacheableitems[i_item], opentrays[i_tray], m.cage.t)
-                cachefromto!(m.agent, object, i_item, opentrays, i_tray)
-                return timeout_cache(m.agent)
-            end
-        elseif otherpossible
-            w = m.agent.params.otheractionweight |> transfer
-            if w > cut * rand()
-                trackotheraction!(m.tracker, w, m.cage.t)
-                return timeout_other(m.agent)
-            end
+    actions = Tuple{Symbol, Int, Int}[]
+    for i in 1:eatpossible * length(object.eatableitems)
+        push!(actions, (:eat, i, 0))
+    end
+    for i in 1:inspectpossible * length(opentrays)
+        push!(actions, (:inspect, 0, i))
+    end
+    for i in 1:cachepossible * length(cacheableitems)
+        for j in eachindex(opentrays)
+            push!(actions, (:cache, i, j))
         end
     end
+    if otherpossible
+        push!(actions, (:other, 0, 0))
+    end
+    N = length(actions)
+    weights = fill(-1., N)
+    if otherpossible
+        weights[end] = m.agent.params.otheractionweight |> squash
+    end
+    for _ in 1:2N # 2N chances before exhaustive
+        i = rand(1:N)
+        w = weights[i]
+        a, i_item, i_tray = actions[i]
+        if w < 0
+            w = _getw(a, m, object, cacheableitems, opentrays, i_item, i_tray) |> squash
+            weights[i] = w
+        end
+        if w > rand()
+            return _doit!(a, m, w, object, cacheableitems, opentrays, i_item, i_tray)
+        end
+    end
+    for i in 1:N # exhaustive
+        w = weights[i]
+        if w < 0
+            a, i_item, i_tray = actions[i]
+            w = _getw(a, m, object, cacheableitems, opentrays, i_item, i_tray) |> squash
+            weights[i] = w
+        end
+    end
+    i = wsample(weights)
+    w = weights[i]
+    a, i_item, i_tray = actions[i]
+    return _doit!(a, m, w, object, cacheableitems, opentrays, i_item, i_tray)
 end
-
 
 elapsed(m::Model) = m.cage.t - m.cage.t0
 function wait!(m::Model, Δt, extracondition = m -> false)
