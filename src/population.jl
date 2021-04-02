@@ -182,14 +182,14 @@ function Population(; integrationmode = :eventbased,
                    defaults(; kwargs...)...)
     l, u = bounds(p)
     c = init(p)
-    Population(default_values(distribution, length(l))..., l, u, p, distribution, c)
+    Population(random_init(distribution, length(l))..., l, u, p, distribution, c)
 end
 softplus(x) = log(exp(x) + 1) + eps()
 beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
                      Beta(softplus(s - d), softplus(s))
 truncnorm(m, s) = TruncatedNormal(m, softplus(s), 0, 1)
-default_values(::typeof(beta), l) = (m = fill(0., l), s = fill(100., l))
-default_values(::typeof(truncnorm), l) = (m = fill(.5, l), s = fill(-4., l))
+random_init(::typeof(beta), l) = (m = 20*rand(l) .- 10, s = 50 * rand(l) .+ 75)
+random_init(::typeof(truncnorm), l) = (m = rand(l), s = 4*rand(l) .- 4)
 function Base.rand(m::Population{<:AbstractVector})
     m.constructor[myid()](@. (m.u - m.l) * rand(m.dist(m.m, m.s)) + m.l)
 end
