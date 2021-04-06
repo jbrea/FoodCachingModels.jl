@@ -127,7 +127,7 @@ version = "0.11.7"
 
 [[FoodCachingExperiments]]
 deps = ["BSON", "CSV", "CodecZstd", "DataFrames", "DataFramesMeta", "Distributions", "HypothesisTests", "LinearAlgebra", "Random", "StatsBase", "StatsModels", "TOML", "Unitful"]
-git-tree-sha1 = "49b0adf439ffe3ff1192a7651174be5f0058305a"
+git-tree-sha1 = "b57688623c8e71eedd923d066481cc6d7faf77bd"
 repo-rev = "master"
 repo-url = "../FoodCachingExperiments"
 uuid = "c83de4e0-732e-420a-99d5-72756bd45ef8"
