@@ -185,15 +185,19 @@ function Population(; integrationmode = :eventbased,
     Population(random_init(distribution, length(l))..., l, u, p, distribution, c)
 end
 softplus(x) = log(exp(x) + 1) + eps()
+delta() = nothing
 beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
                      Beta(softplus(s - d), softplus(s))
 truncnorm(m, s) = TruncatedNormal(m, softplus(s), 0, 1)
 random_init(::typeof(beta), l) = (m = 20*rand(l) .- 10, s = 50 * rand(l) .+ 75)
 random_init(::typeof(truncnorm), l) = (m = rand(l), s = 4*rand(l) .- 4)
+random_init(::typeof(delta), l) = randn(l), nothing
 function Base.rand(m::Population{<:AbstractVector})
     m.constructor[myid()](@. (m.u - m.l) * rand(m.dist(m.m, m.s)) + m.l)
 end
-Base.rand(m::Population{<:Nothing}) = m.constructor(m.m)
+function Base.rand(m::Population{<:Nothing})
+    m.constructor[myid()](@. (m.u - m.l) * 1/(1 + exp(m.m)) + m.l)
+end
 Base.rand(m::Population, n::Int) = [rand(m) for _ in 1:n]
 
 function save(path, m::Population, dict = Dict{Symbol, Any}())
