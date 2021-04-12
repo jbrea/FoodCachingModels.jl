@@ -184,7 +184,7 @@ function Population(; integrationmode = :eventbased,
     c = init(p)
     Population(random_init(distribution, length(l))..., l, u, p, distribution, c)
 end
-softplus(x) = log(exp(x) + 1) + eps()
+softplus(x) = x > 40 ? x : log(exp(x) + 1) + eps()
 delta() = nothing
 beta(d, s) = d < 0 ? Beta(softplus(s), softplus(s + d)) :
                      Beta(softplus(s - d), softplus(s))
