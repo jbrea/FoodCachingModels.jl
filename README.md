@@ -1,3 +1,5 @@
 # FoodCachingModels
 
-[![Build Status](https://github.com/jbrea/FoodCachingModels.jl/workflows/CI/badge.svg)](https://github.com/jbrea/FoodCachingModels.jl/actions)
+The code in this repository defines the models `Baseline`, `MotivationalControl`,
+`EpisodicLikeMemory`, `PlasticCaching` and `ReplayAndPlan` to simulate food
+caching experiments. This repository is a submodule of [FoodCaching](../FoodCaching).
