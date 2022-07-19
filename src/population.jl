@@ -27,13 +27,15 @@ default_foodtypes(es::Vector{Symbol}) = union(vcat(FoodCachingExperiments.foodty
 function defaults(::Type{SpecSatOrthoParams};
                   experiments = nothing,
                   foodtypes = default_foodtypes(experiments),
+                  cachepreferencemodel = ModulatedSpecSatParams,
+                  eatpreferencemodel = ModulatedSpecSatParams,
                   kwargs...)
     n = length(foodtypes)
     n1 = n - (Stone in foodtypes)
     merge(merge((lookup = foodlookup(foodtypes),
                  foodtypes = foodtypes),
                 kwargs),
-          (specsatparams = SpecSatOrthoParams{n1, n},))
+          (specsatparams = SpecSatOrthoParams{eatpreferencemodel{n1}, cachepreferencemodel{n}, n1},))
 end
 function defaults(::Type{Hunger};
                   timeunit = 1.0u"minute",
@@ -110,16 +112,14 @@ BOUNDS[:inspectpreference] = (0., 4.)
 BOUNDS[:hungertimeconstant] = (50., 300.)
 BOUNDS[:digestiontimeconstant] = (eps(), 20.)
 BOUNDS[:digestionduration] = (.5, 10.)
-BOUNDS[:eatweights] = (.1, 1.)
-BOUNDS[:cacheweights] = (0., 1.)
+BOUNDS[:weights] = (0., 1.)
+BOUNDS[:bias] = (-1., 1.)
 BOUNDS[:nutritionvalues] = (.1, 1.)
-BOUNDS[:eatbias] = (-1., 1.)
 BOUNDS[:inspectpreference] = (0., 4.)
 # PlasticCachingAgent
 BOUNDS[:initialweight] = (0., 1.)
 BOUNDS[:inspectbias] = (-2., .5)
 BOUNDS[:inspectslope] = (0., 5.)
-BOUNDS[:cachebias] = (-1., 1.)
 BOUNDS[:hungerincreasethreshold] = (.9, 1.)
 BOUNDS[:hungerincreasetimeconstant] = (100., 500.)
 BOUNDS[:freshness_alpha] = (0., 1.)

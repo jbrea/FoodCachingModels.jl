@@ -74,29 +74,33 @@ function update!(h::Hunger, Δt, ismdpresent, i)
     end
 end
 
-struct SpecSatOrthoParams{N1,N}
-    eatweights::NTuple{N1,Float64}
-    cacheweights::NTuple{N,Float64}
-    nutritionvalues::NTuple{N1,Float64}
-    eatbias::Float64
-    cachebias::Float64
+struct ModulatedSpecSatParams{N}
+    weights::NTuple{N, Float64}
+    bias::Float64
+end
+struct SpecSatParams{N}
+    weights::NTuple{N, Float64}
+end
+struct SpecSatOrthoParams{E, C, N}
+    eatpreference::E
+    cachepreference::C
+    nutritionvalues::NTuple{N,Float64}
     foodtypes::Vector{Food}
     lookup::NTuple{N_FOODTYPE,Int}
 end
 NestedStructInitialiser.isleaf(::AbstractArray{<:Food}) = true
 
-function getweight(h::Hunger, specsat::SpecSatOrthoParams, weights, bias, typ::Int)
-    typ == Int(Stone) && return 0.
-    i = specsat.lookup[typ]
-    h.hunger[i] * weights[i] + bias
+function getweight(h::Hunger, params::ModulatedSpecSatParams, i)
+    h.hunger[i] * params.weights[i] + params.bias
 end
-getweight(h::Hunger, s::SpecSatOrthoParams, w, item::FoodItem) =
-    getweight(h, s, w, foodindex(item))
+function getweight(::Any, params::SpecSatParams, i)
+    params.weights[i]
+end
 function getcacheweight(h::Hunger, specsat::SpecSatOrthoParams, typ)
     if typ == Int(Stone)
-        specsat.cacheweights[specsat.lookup[typ]]
+        specsat.cachepreference.weights[specsat.lookup[typ]]
     else
-        getweight(h, specsat, specsat.cacheweights, specsat.cachebias, typ)
+        getweight(h, specsat.cachepreference, specsat.lookup[typ])
     end
 end
 function eat!(h::Hunger, specsat::SpecSatOrthoParams, item)
@@ -123,7 +127,8 @@ inspectweight(agent::SpecSatAgent, ::Any) = agent.inspectpreference
 
 function geteatweight(agent::SpecSatAgents, typ)
     s = agent.specsatparams
-    getweight(agent.hungermodel, s, s.eatweights, s.eatbias, typ)
+    typ == Int(Stone) && return 0.
+    getweight(agent.hungermodel, s.eatpreference, s.lookup[typ])
 end
 
 function eatcallback!(agent::SpecSatAgents, item, trays)
