@@ -189,6 +189,7 @@ end
 function cachecallback!(agent::PlasticCachingAgent, item, tray)
     typ = item.id
 	add!(tray, typ, 1)
+    modifycachemotivation!(agent.hungermodel, agent.specsatparams, typ)
     add_snapshot_item!(agent.snapshots, tray, typ, agent.t)
     inittrayweights!(agent, cache_features(agent.snapshots, tray), typ)
 end
@@ -228,12 +229,12 @@ end
 function updatecacheweights!(agent::PlasticCachingAgent{<:PlasticCachingAgentParams{<:Any, <:Any, <:HungerIncrease}}, cage, Δt)
     length(cage.trays) == 0 && return nothing
     hungermodel = agent.hungermodel
-    n = length(hungermodel.hunger)
+    idxs = eachindex(hungermodel)
     hθ = agent.cacheparams.compensatorycaching.hungerincreasethreshold
     hτ = agent.cacheparams.compensatorycaching.hungerincreasetimeconstant
     ds = [duration_above_threshold(hungermodel, Δt, hθ, cage.ismdpresent, i)
-          for i in 1:n]
-    for i in 1:n
+          for i in idxs]
+    for i in idxs
         d = ds[i]
         typ = agent.specsatparams.foodtypes[i]
         for tray in cage.trays

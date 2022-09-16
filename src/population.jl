@@ -50,6 +50,29 @@ function defaults(::Type{Hunger};
                 kwargs),
           (hungermodel = Hunger{typeof(timeunit)},))
 end
+function defaults(::Type{SimpleFactorizedHunger};
+                  timeunit = 1.0u"minute",
+                  experiments = nothing,
+                  foodtypes = default_foodtypes(experiments),
+                  kwargs...)
+    n = length(foodtypes)
+    merge(merge((hunger = Init(zeros(n)),
+                 cachemotivation = Init(zeros(n)),
+                 timeunit = timeunit,
+                 foodtypes = foodtypes),
+                kwargs),
+          (hungermodel = SimpleFactorizedHunger{typeof(timeunit)},))
+end
+function defaults(::Type{FactoredMotivationalControl};
+                  hungermodulation = Hunger,
+                  cachemodulation = Hunger,
+                  kwargs...)
+    hd = defaults(hungermodulation; kwargs...)
+    cd = defaults(cachemodulation; kwargs...)
+    hungermodel = FactoredMotivationalControl{hd.hungermodel, cd.hungermodel}
+    merge(hd, merge(cd, kwargs),
+          (; hungermodel))
+end
 function defaults(::Type{PlasticCachingAgent};
                   kwargs...)
     merge((snapshots = SnapshotSimple,
@@ -134,6 +157,7 @@ BOUNDS[:rewardedscale] = (0., 1.)
 BOUNDS[:degradedscale] = (0., 1.)
 BOUNDS[:pilferedscale] = (0., 1.)
 BOUNDS[:discountfactor] = (0., 1.)
+BOUNDS[:cachedecreasescale] = (0., 1.)
 
 function bounds(p::NestedStructInitialiser.Parameters; kwargs...)
     b = merge(BOUNDS, kwargs)
@@ -161,8 +185,8 @@ end
 function Base.show(io::IO, ::MIME"text/plain", pop::Population)
     println(io, "Population of $(pop.p.fixed[1][2]) ($(pop.dist))")
 end
-function init(p)
-    @distributed vcat for _ in procs()
+function init(p; pids = procs())
+    @distributed vcat for _ in pids
         [initialiser(p)]
     end
 end
@@ -177,11 +201,13 @@ function setparameters!(m::Population{<:Nothing}, x)
     m
 end
 function Population(; integrationmode = :eventbased,
-                      distribution = truncnorm, kwargs...)
+                      distribution = truncnorm,
+                      pids = procs(),
+                      kwargs...)
     p = parameters(Model{integrationmode};
                    defaults(; kwargs...)...)
     l, u = bounds(p)
-    c = init(p)
+    c = init(p; pids)
     Population(random_init(distribution, length(l))..., l, u, p, distribution, c)
 end
 softplus(x) = x > 40 ? x : log(exp(x) + 1) + eps()
@@ -204,9 +230,9 @@ function save(path, m::Population, dict = Dict{Symbol, Any}())
     dict[:model] = m
     bsave(path, dict)
 end
-function load(path)
+function load(path; pids = procs())
     m = bload(path, @__MODULE__)[:model]
-    Population(m.m, m.s, m.l, m.u, m.p, m.dist, init(m.p))
+    Population(m.m, m.s, m.l, m.u, m.p, m.dist, init(m.p; pids))
 end
 
 Baseline(; kwargs...) = Population(; agent = SimpleAgent, kwargs...)
