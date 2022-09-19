@@ -235,7 +235,7 @@ end
 function integrate!(m::Model{:euler}, t)
     s = m.cage.t
     while true
-        s += 60u"s"
+        s += 1.0u"minute"
         t < s && return _integrate!(m, t)
         _integrate!(m, s)
     end

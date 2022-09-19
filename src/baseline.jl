@@ -19,7 +19,7 @@ eatfromweight(agent::SimpleAgent, ::Any) = agent.simpleparams.eatpreference
 cachefromtoweight(agent::SimpleAgent, ::Any, ::Any) = agent.simpleparams.cachepreference
 inspectweight(agent::SimpleAgent, ::Any) = agent.simpleparams.inspectpreference
 
-timeout(T) = ((T - 1) * rand() + 1)u"s"
+timeout(T) = (((T - 1) * rand() + 1)/60)u"minute"
 timeout_eat(agent) = timeout(agent.params.timeout_eat)
 timeout_cache(agent) = timeout(agent.params.timeout_cache)
 timeout_inspect(agent) = timeout(agent.params.timeout_inspect)

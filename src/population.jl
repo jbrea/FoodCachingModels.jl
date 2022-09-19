@@ -41,37 +41,32 @@ function defaults(::Type{Hunger};
                   timeunit = 1.0u"minute",
                   experiments = nothing,
                   foodtypes = default_foodtypes(experiments),
+                  cachemodulation = HungerModulatedCaching,
                   kwargs...)
     n = length(foodtypes)
     merge(merge((hunger = Init(zeros(n)),
                  stomach = Init(zeros(n)),
                  timeunit = timeunit,
+                 cachemodulation = cachemodulation,
+                 cachemotivation = Init(zeros(n)),
                  foodtypes = foodtypes),
                 kwargs),
-          (hungermodel = Hunger{typeof(timeunit)},))
+          (hungermodel = Hunger{cachemodulation,typeof(timeunit)},))
 end
-function defaults(::Type{SimpleFactorizedHunger};
+function defaults(::Type{SimpleHunger};
                   timeunit = 1.0u"minute",
                   experiments = nothing,
                   foodtypes = default_foodtypes(experiments),
+                  cachemodulation = HungerModulatedCaching,
                   kwargs...)
     n = length(foodtypes)
     merge(merge((hunger = Init(zeros(n)),
-                 cachemotivation = Init(zeros(n)),
                  timeunit = timeunit,
+                 cachemodulation = cachemodulation,
+                 cachemotivation = Init(zeros(n)),
                  foodtypes = foodtypes),
                 kwargs),
-          (hungermodel = SimpleFactorizedHunger{typeof(timeunit)},))
-end
-function defaults(::Type{FactoredMotivationalControl};
-                  hungermodulation = Hunger,
-                  cachemodulation = Hunger,
-                  kwargs...)
-    hd = defaults(hungermodulation; kwargs...)
-    cd = defaults(cachemodulation; kwargs...)
-    hungermodel = FactoredMotivationalControl{hd.hungermodel, cd.hungermodel}
-    merge(hd, merge(cd, kwargs),
-          (; hungermodel))
+          (hungermodel = SimpleHunger{cachemodulation,typeof(timeunit)},))
 end
 function defaults(::Type{PlasticCachingAgent};
                   kwargs...)
@@ -107,7 +102,7 @@ function defaults(::Type{PiecewiseConstantFreshnessEstimator}; kwargs...)
           kwargs)
 end
 function defaults(::Type{PlanningAgentParams}; kwargs...)
-    merge((timeref = .0u"s", current = Init(Dict{Int, MemoryContent}()),
+    merge((timeref = .0u"minute", current = Init(Dict{Int, MemoryContent}()),
            memory = Init(Dict{Int, MemoryContent}[])), kwargs)
 end
 defaults(::Any; kwargs...) = kwargs

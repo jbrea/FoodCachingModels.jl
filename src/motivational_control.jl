@@ -6,12 +6,28 @@ function foodlookup(foodtypes)
     tuple(lookup...)
 end
 
-struct Hunger{T}
+struct HungerModulatedCaching end
+update!(::HungerModulatedCaching, ::Any, ::Any) = nothing
+modifycachemotivation!(::HungerModulatedCaching, ::Any, ::Any) = nothing
+struct CacheModulatedCaching
+    cachedecreasescale::Float64
+    cachemotivation::Vector{Float64}
+end
+function update!(c::CacheModulatedCaching, s, i)
+    c.cachemotivation[i] = 1 + (c.cachemotivation[i] - 1) * exp(-s)
+end
+function modifycachemotivation!(c::CacheModulatedCaching, specsat, typ)
+    i = lookup(specsat, typ)
+    c.cachemotivation[i] -= c.cachemotivation[i] * c.cachedecreasescale
+end
+
+struct Hunger{C,T}
     hungertimeconstant::T
     digestiontimeconstant::T
     digestionduration::T
     hunger::Vector{Float64}
     stomach::Vector{Float64}
+    cachemodulation::C
 end
 
 hunger(h::Hunger) = h.hunger
@@ -25,26 +41,31 @@ function eat!(h, nutritionvalue)
 end
 function duration_above_threshold(h::Hunger, Δt, θ, ismdpresent, i)
     if ismdpresent
-        h.hunger[i] <= θ && return 0.0u"s"
-        return min(h.digestiontimeconstant * log(h.hunger[i]/θ), Δt)
+        return duration_above_threshold_decr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
     end
     if h.stomach[i] > 0.
         timeuntildigested = h.stomach[i] * h.digestionduration
         if Δt > timeuntildigested
-            hcopy = deepcopy(h)
+            d_above = duration_above_threshold_decr(h.hunger[i], θ,
+                                                    timeuntildigested,
+                                                    h.digestiontimeconstant)
+            hungerdec = h.hunger[i] * exp(-timeuntildigested/h.digestiontimeconstant)
             newΔt = Δt - timeuntildigested
-            hcopy.stomach[i] = 0.
-            d_above = h.hunger[i] <= θ ? 0.0u"s" : min(h.digestiontimeconstant * log(h.hunger[i]/θ), timeuntildigested)
-            decreasehunger(hcopy, timeuntildigested, i)
-            d_above + duration_above_threshold(hcopy, newΔt, θ, ismdpresent, i)
+            d_above + duration_above_threshold_incr(hungerdec, θ, newΔt, h.digestiontimeconstant)
         else
-            h.hunger[i] <= θ && return 0.0u"s"
-            return min(h.digestiontimeconstant * log(h.hunger[i]/θ), Δt)
+            duration_above_threshold_decr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
         end
     else
-        h.hunger[i] >= θ && return Δt
-        return max(0.0u"s", Δt - h.digestiontimeconstant * log(θ/h.hunger[i]))
+        duration_above_threshold_incr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
     end
+end
+function duration_above_threshold_decr(h, θ, Δt, τ)
+    h ≤ θ && return 0.0u"minute"
+    return min(τ * log(h/θ), Δt)
+end
+function duration_above_threshold_incr(h, θ, Δt, τ)
+    h ≥ θ && return Δt
+    return max(0.0u"minute", Δt - τ * log(θ/h))
 end
 function update!(h, Δt, ismdpresent = false)
     for i in eachindex(h)
@@ -52,9 +73,9 @@ function update!(h, Δt, ismdpresent = false)
     end
     hunger(h)
 end
-decreasehunger(h, Δt, i) = h.hunger[i] *= exp(-Δt/h.digestiontimeconstant)
+decreasehunger!(h, Δt, i) = h.hunger[i] *= exp(-Δt/h.digestiontimeconstant)
 function increasehunger!(h, Δt, ismdpresent, i)
-    ismdpresent && return decreasehunger(h, Δt, i)
+    ismdpresent && return decreasehunger!(h, Δt, i)
     h.hunger[i] = 1 + (h.hunger[i] - 1) * exp(-Δt/h.hungertimeconstant)
 end
 function update!(h::Hunger, Δt, ismdpresent, i)
@@ -64,86 +85,40 @@ function update!(h::Hunger, Δt, ismdpresent, i)
             newΔt = Δt - timeuntildigested
             Δt = timeuntildigested
             h.stomach[i] = 0.
-            decreasehunger(h, Δt, i)
+            decreasehunger!(h, Δt, i)
             update!(h, newΔt, ismdpresent, i)
         else
             h.stomach[i] -= Δt/h.digestionduration
-            decreasehunger(h, Δt, i)
+            decreasehunger!(h, Δt, i)
         end
     else
         increasehunger!(h, Δt, ismdpresent, i)
     end
 end
 
-struct SimpleHunger{T}
+struct SimpleHunger{C,T}
     hungertimeconstant::T
     digestiontimeconstant::T
-    hungerdecreasescale::Float64
     hunger::Vector{Float64}
+    cachemodulation::C
 end
 hunger(h::SimpleHunger) = h.hunger
 Base.eachindex(h::SimpleHunger) = eachindex(h.hunger)
 function eat!(h::SimpleHunger, nutritionvalue::Number, i)
-    h.hunger[i] -= h.hungerdecreasescale * h.hunger[i] * nutritionvalue
-end
-update!(h::SimpleHunger, Δt, ismdpresent, i) = increasehunger!(h, Δt, ismdpresent, i)
-function duration_above_threshold(h::SimpleHunger, Δt, θ, ismdpresent, i)
-    if ismdpresent
-        h.hunger[i] ≤ θ && return 0.0u"s"
-        return min(h.digestiontimeconstant * log(h.hunger[i]/θ), Δt)
-    else
-        h.hunger[i] ≥ θ && return Δt
-        return max(0.0u"s", Δt - h.digestiontimeconstant * log(θ/h.hunger[i]))
-    end
-end
-
-struct SimpleFactorizedHunger{T}
-    hungertimeconstant::T
-    digestiontimeconstant::T
-    cachedecreasescale::Float64
-    hunger::Vector{Float64}
-    cachemotivation::Vector{Float64}
-end
-hunger(h::SimpleFactorizedHunger) = h.hunger
-Base.eachindex(h::SimpleFactorizedHunger) = eachindex(h.hunger)
-function eat!(h::SimpleFactorizedHunger, nutritionvalue::Number, i)
     h.hunger[i] -= h.hunger[i] * nutritionvalue
 end
-function update!(h::SimpleFactorizedHunger, Δt, ismdpresent, i)
+function update!(h::SimpleHunger, Δt, ismdpresent, i)
     increasehunger!(h, Δt, ismdpresent, i)
-    h.cachemotivation[i] = 1 + (h.cachemotivation[i] - 1) * exp(-Δt/h.hungertimeconstant)
+    update!(h.cachemodulation, Δt/h.hungertimeconstant, i)
 end
-function modifycachemotivation!(h::SimpleFactorizedHunger, specsat, typ)
-    i = lookup(specsat, typ)
-    h.cachemotivation[i] -= h.cachemotivation[i] * h.cachedecreasescale
-end
-function duration_above_threshold(h::SimpleFactorizedHunger, Δt, θ, ismdpresent, i)
+function duration_above_threshold(h::SimpleHunger, Δt, θ, ismdpresent, i)
     if ismdpresent
-        h.hunger[i] ≤ θ && return 0.0u"s"
-        return min(h.digestiontimeconstant * log(h.hunger[i]/θ), Δt)
+        duration_above_threshold_decr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
     else
-        h.hunger[i] ≥ θ && return Δt
-        return max(0.0u"s", Δt - h.digestiontimeconstant * log(θ/h.hunger[i]))
+        duration_above_threshold_incr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
     end
 end
 
-struct FactoredMotivationalControl{H,C}
-    hungermodulation::H
-    cachemodulation::C
-end
-hunger(h::FactoredMotivationalControl) = hunger(h.hungermodulation)
-Base.eachindex(h::FactoredMotivationalControl) = eachindex(h.hungermodulation)
-eat!(h::FactoredMotivationalControl, nutritionvalue::Number, i) =
-    eat!(h.hungermodulation, nutritionvalue, i)
-function update!(h::FactoredMotivationalControl, Δt, ismdpresent, i)
-    update!(h.hungermodulation, Δt, ismdpresent, i)
-    update!(h.cachemodulation, Δt, false, i)
-end
-duration_above_threshold(h::FactoredMotivationalControl, Δt, θ, ismdpresent, i) =
-    duration_above_threshold(h.hungermodulation, Δt, θ, ismdpresent, i)
-function modifycachemotivation!(h::FactoredMotivationalControl, specsat, typ)
-    eat!(h.cachemodulation, 1., lookup(specsat, typ))
-end
 
 struct ModulatedSpecSatParams{N}
     weights::NTuple{N, Float64}
@@ -168,7 +143,7 @@ end
 function getweight(::Any, params::SpecSatParams, i)
     params.weights[i]
 end
-function getcacheweight(h::Union{SimpleHunger, Hunger}, specsat::SpecSatOrthoParams, typ::Int)
+function getcacheweight(::HungerModulatedCaching, h, specsat::SpecSatOrthoParams, typ::Int)
     i = lookup(specsat, typ)
     if typ == Int(Stone)
         specsat.cachepreference.weights[i]
@@ -176,11 +151,8 @@ function getcacheweight(h::Union{SimpleHunger, Hunger}, specsat::SpecSatOrthoPar
         getweight(hunger(h), specsat.cachepreference, i)
     end
 end
-function getcacheweight(h::FactoredMotivationalControl, specsat::SpecSatOrthoParams, typ)
-    getweight(hunger(h.cachemodulation), specsat.cachepreference, lookup(specsat, typ))
-end
-function getcacheweight(h::SimpleFactorizedHunger, specsat::SpecSatOrthoParams, typ)
-    getweight(h.cachemotivation, specsat.cachepreference, lookup(specsat, typ))
+function getcacheweight(c::CacheModulatedCaching, ::Any, specsat::SpecSatOrthoParams, typ)
+    getweight(c.cachemotivation, specsat.cachepreference, lookup(specsat, typ))
 end
 function eat!(h, specsat::SpecSatOrthoParams, item)
     (item.freshness == 0 || item.id == Stone) && return nothing
@@ -224,7 +196,8 @@ modifycachemotivation!(::Any, ::Any, ::Any) = nothing
 
 
 function getcacheweight(agent::SpecSatAgents, typ)
-    getcacheweight(agent.hungermodel, agent.specsatparams, typ)
+    h = agent.hungermodel
+    getcacheweight(h.cachemodulation, h, agent.specsatparams, typ)
 end
 
 function updateagentstate!(agent::SpecSatAgent, cage, Δt)
