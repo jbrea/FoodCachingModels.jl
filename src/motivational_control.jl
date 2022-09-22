@@ -51,12 +51,12 @@ function duration_above_threshold(h::Hunger, Δt, θ, ismdpresent, i)
                                                     h.digestiontimeconstant)
             hungerdec = h.hunger[i] * exp(-timeuntildigested/h.digestiontimeconstant)
             newΔt = Δt - timeuntildigested
-            d_above + duration_above_threshold_incr(hungerdec, θ, newΔt, h.digestiontimeconstant)
+            d_above + duration_above_threshold_incr(hungerdec, θ, newΔt, h.hungertimeconstant)
         else
             duration_above_threshold_decr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
         end
     else
-        duration_above_threshold_incr(h.hunger[i], θ, Δt, h.digestiontimeconstant)
+        duration_above_threshold_incr(h.hunger[i], θ, Δt, h.hungertimeconstant)
     end
 end
 function duration_above_threshold_decr(h, θ, Δt, τ)
@@ -65,7 +65,7 @@ function duration_above_threshold_decr(h, θ, Δt, τ)
 end
 function duration_above_threshold_incr(h, θ, Δt, τ)
     h ≥ θ && return Δt
-    return max(0.0u"minute", Δt - τ * log(θ/h))
+    return max(0.0u"minute", Δt + τ * log((θ-1)/(h-1)))
 end
 function update!(h, Δt, ismdpresent = false)
     for i in eachindex(h)
