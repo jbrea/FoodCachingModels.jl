@@ -70,6 +70,7 @@ end
 function update!(h, Δt, ismdpresent = false)
     for i in eachindex(h)
         update!(h, Δt, ismdpresent, i)
+        update!(h.cachemodulation, Δt/h.hungertimeconstant, i)
     end
     hunger(h)
 end

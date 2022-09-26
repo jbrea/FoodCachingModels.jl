@@ -48,7 +48,7 @@ function defaults(::Type{Hunger};
                  stomach = Init(zeros(n)),
                  timeunit = timeunit,
                  cachemodulation = cachemodulation,
-                 cachemotivation = Init(zeros(n)),
+                 cachemotivation = Init(ones(n)),
                  foodtypes = foodtypes),
                 kwargs),
           (hungermodel = Hunger{cachemodulation,typeof(timeunit)},))
