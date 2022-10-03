@@ -34,6 +34,7 @@ hunger(h::Hunger) = h.hunger
 Base.eachindex(h::Hunger) = eachindex(h.hunger)
 hunger(agent) = hunger(agent.hungermodel)
 eat!(h::Hunger, nutritionvalue::Number, i) = h.stomach[i] += nutritionvalue
+modifycachemotivation!(h::Hunger, specsat, typ) = modifycachemotivation!(h.cachemodulation, specsat, typ)
 function eat!(h, nutritionvalue)
     for i in eachindex(nutritionvalue)
         eat!(h, nutritionvalue[i], i)
