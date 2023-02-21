@@ -53,6 +53,14 @@ function defaults(::Type{Hunger};
                 kwargs),
           (hungermodel = Hunger{cachemodulation,typeof(timeunit)},))
 end
+function defaults(::Type{CacheModulatedCaching2};
+                  timeunit = 1.0u"minute",
+                  experiments = nothing,
+                  foodtypes = default_foodtypes(experiments),
+                  kwargs...)
+    merge(merge((; timeunit, experiments, foodtypes), kwargs),
+          (cachemodulation = CacheModulatedCaching2{typeof(timeunit), length(foodtypes)},))
+end
 function defaults(::Type{SimpleHunger};
                   timeunit = 1.0u"minute",
                   experiments = nothing,
@@ -133,6 +141,7 @@ BOUNDS[:digestionduration] = (.5, 10.)
 BOUNDS[:weights] = (0., 1.)
 BOUNDS[:bias] = (-1., 1.)
 BOUNDS[:nutritionvalues] = (.1, 1.)
+BOUNDS[:update_value] = (.1, 1.)
 BOUNDS[:inspectpreference] = (0., 4.)
 # PlasticCachingAgent
 BOUNDS[:initialweight] = (0., 1.)

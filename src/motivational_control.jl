@@ -20,6 +20,21 @@ function modifycachemotivation!(c::CacheModulatedCaching, specsat, typ)
     i = lookup(specsat, typ)
     c.cachemotivation[i] -= c.cachemotivation[i] * c.cachedecreasescale
 end
+struct CacheModulatedCaching2{T,N}
+    hungertimeconstant::T
+    digestiontimeconstant::T
+    digestionduration::T
+    update_value::NTuple{N,Float64}
+    hunger::Vector{Float64}
+    stomach::Vector{Float64}
+end
+function update!(c::CacheModulatedCaching2, s, i)
+    update!(c, s, false, i)
+end
+function modifycachemotivation!(c::CacheModulatedCaching2, specsat, typ)
+    i = lookup(specsat, typ)
+    c.stomach[i] += c.update_value[i]
+end
 
 struct Hunger{C,T}
     hungertimeconstant::T
@@ -80,7 +95,7 @@ function increasehunger!(h, Δt, ismdpresent, i)
     ismdpresent && return decreasehunger!(h, Δt, i)
     h.hunger[i] = 1 + (h.hunger[i] - 1) * exp(-Δt/h.hungertimeconstant)
 end
-function update!(h::Hunger, Δt, ismdpresent, i)
+function update!(h::Union{Hunger, CacheModulatedCaching2}, Δt, ismdpresent, i)
     if h.stomach[i] > 0.
         timeuntildigested = h.stomach[i] * h.digestionduration
         if Δt > timeuntildigested
@@ -155,6 +170,9 @@ function getcacheweight(::HungerModulatedCaching, h, specsat::SpecSatOrthoParams
 end
 function getcacheweight(c::CacheModulatedCaching, ::Any, specsat::SpecSatOrthoParams, typ)
     getweight(c.cachemotivation, specsat.cachepreference, lookup(specsat, typ))
+end
+function getcacheweight(c::CacheModulatedCaching2, ::Any, specsat::SpecSatOrthoParams, typ)
+    getweight(c.hunger, specsat.cachepreference, lookup(specsat, typ))
 end
 function eat!(h, specsat::SpecSatOrthoParams, item)
     (item.freshness == 0 || item.id == Stone) && return nothing
