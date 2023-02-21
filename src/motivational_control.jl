@@ -7,14 +7,14 @@ function foodlookup(foodtypes)
 end
 
 struct HungerModulatedCaching end
-update!(::HungerModulatedCaching, ::Any, ::Any) = nothing
+update_cachemod!(::HungerModulatedCaching, ::Any, ::Any, ::Any) = nothing
 modifycachemotivation!(::HungerModulatedCaching, ::Any, ::Any) = nothing
 struct CacheModulatedCaching
     cachedecreasescale::Float64
     cachemotivation::Vector{Float64}
 end
-function update!(c::CacheModulatedCaching, s, i)
-    c.cachemotivation[i] = 1 + (c.cachemotivation[i] - 1) * exp(-s)
+function update_cachemod!(c::CacheModulatedCaching, Δt, τ, i)
+    c.cachemotivation[i] = 1 + (c.cachemotivation[i] - 1) * exp(-Δt/τ)
 end
 function modifycachemotivation!(c::CacheModulatedCaching, specsat, typ)
     i = lookup(specsat, typ)
@@ -28,8 +28,8 @@ struct CacheModulatedCaching2{T,N}
     hunger::Vector{Float64}
     stomach::Vector{Float64}
 end
-function update!(c::CacheModulatedCaching2, s, i)
-    update!(c, s, false, i)
+function update_cachemod!(c::CacheModulatedCaching2, Δt, ::Any, i)
+    update!(c, Δt, false, i)
 end
 function modifycachemotivation!(c::CacheModulatedCaching2, specsat, typ)
     i = lookup(specsat, typ)
@@ -86,7 +86,7 @@ end
 function update!(h, Δt, ismdpresent = false)
     for i in eachindex(h)
         update!(h, Δt, ismdpresent, i)
-        update!(h.cachemodulation, Δt/h.hungertimeconstant, i)
+        update_cachemod!(h.cachemodulation, Δt, h.hungertimeconstant, i)
     end
     hunger(h)
 end
